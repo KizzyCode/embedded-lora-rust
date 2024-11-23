@@ -8,7 +8,7 @@
 [![dependency status](https://deps.rs/crate/embedded-lora-rfm95/latest/status.svg)](https://deps.rs/crate/embedded-lora-rfm95)
 -->
 
-# `embedded-rfm95`
+# `embedded-lora-rfm95`
 A `no-std`-compatible, opinionated driver for the RFM95 LoRa modem. It only supports the LoRa mode, and has only been
 tested with the 868 MHz variant for now.
 
