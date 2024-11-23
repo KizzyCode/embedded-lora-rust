@@ -14,4 +14,4 @@ modulations, these drivers only implement LoRa. Furthermore, we currently only t
 variants may or may not work.
 
 ## Currently Implemented Drivers
-- [RFM95](./rfm95/README.md)
+- [embedded-lora-rfm95](./rfm95/README.md) for the popular RFM95 chips
