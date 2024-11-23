@@ -86,7 +86,6 @@ where
         Ok(command[1])
     }
 }
-
 impl<Bus, Select> Debug for Rfm95Connection<Bus, Select>
 where
     Bus: SpiBus,
