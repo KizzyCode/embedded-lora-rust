@@ -251,12 +251,14 @@ impl From<PreambleLength> for u16 {
 #[repr(transparent)]
 pub struct Frequency(u32);
 impl Frequency {
-    /// 868.1 MHz
+    /// 868.1 MHz (common LoRaWAN default frequency)
     pub const F868_1: Self = Self(868_100_000);
-    /// 868.3 MHz
+    /// 868.3 MHz (common LoRaWAN default frequency)
     pub const F868_3: Self = Self(868_300_000);
-    /// 868.5 MHz
+    /// 868.5 MHz (common LoRaWAN default frequency)
     pub const F868_5: Self = Self(868_500_000);
+    /// 869.5 MHz (useful due to its 10% duty cycle in some areas)
+    pub const F869_5: Self = Self(869_500_000);
 
     /// Create a new frequency from the given raw frequency in Hz
     pub const fn hz(hz: u32) -> Self {
