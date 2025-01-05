@@ -1,12 +1,10 @@
 [![License BSD-2-Clause](https://img.shields.io/badge/License-BSD--2--Clause-blue.svg)](https://opensource.org/licenses/BSD-2-Clause)
 [![License MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![AppVeyor CI](https://ci.appveyor.com/api/projects/status/github/KizzyCode/embedded-lora-rust?svg=true)](https://ci.appveyor.com/project/KizzyCode/embedded-lora-rust)
-<!--
 [![docs.rs](https://docs.rs/embedded-lora-rfm95/badge.svg)](https://docs.rs/embedded-lora-rfm95)
 [![crates.io](https://img.shields.io/crates/v/embedded-lora-rfm95.svg)](https://crates.io/crates/embedded-lora-rfm95)
 [![Download numbers](https://img.shields.io/crates/d/embedded-lora.svg)](https://crates.io/crates/embedded-lora-rfm95)
 [![dependency status](https://deps.rs/crate/embedded-lora-rfm95/latest/status.svg)](https://deps.rs/crate/embedded-lora-rfm95)
--->
 
 # `embedded-lora-rfm95`
 A `no-std`-compatible, opinionated driver for the RFM95 LoRa modem. It only supports the LoRa mode, and has only been
