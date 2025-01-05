@@ -7,5 +7,17 @@
 modulations, these drivers only implement LoRa. Furthermore, we currently only test the EU 868 MHz variants; other
 variants may or may not work.
 
-## Currently Implemented Drivers
-- [embedded-lora-rfm95](./rfm95/README.md) for the popular RFM95 chips
+## `embedded-lora-rfm95`
+[![docs.rs](https://docs.rs/embedded-lora-rfm95/badge.svg)](https://docs.rs/embedded-lora-rfm95)
+[![crates.io](https://img.shields.io/crates/v/embedded-lora-rfm95.svg)](https://crates.io/crates/embedded-lora-rfm95)
+[![Download numbers](https://img.shields.io/crates/d/embedded-lora.svg)](https://crates.io/crates/embedded-lora-rfm95)
+[![dependency status](https://deps.rs/crate/embedded-lora-rfm95/latest/status.svg)](https://deps.rs/crate/embedded-lora-rfm95)
+
+The [embedded-lora-rfm95](./rfm95/README.md) crate implements a driver for the popular RFM95 chips.
+
+Currently supported features are:
+- [x] Single RX
+- [x] Single TX
+- [x] Advanced LoRa modem configuration
+- [x] SPI and modem register debugging
+- [x] LoRa utils for AirTime computation
