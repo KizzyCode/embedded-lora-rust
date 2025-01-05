@@ -210,6 +210,11 @@ impl SyncWord {
     pub const fn new(word: u8) -> Self {
         Self(word)
     }
+
+    /// The sync word as `u8`
+    pub const fn as_u8(self) -> u8 {
+        self.0
+    }
 }
 impl From<u8> for SyncWord {
     fn from(value: u8) -> Self {
@@ -233,6 +238,11 @@ impl PreambleLength {
     /// Create a new preamble length from the given raw length
     pub const fn new(len: u16) -> Self {
         Self(len)
+    }
+
+    /// The preamble length as `u16`
+    pub const fn as_u16(self) -> u16 {
+        self.0
     }
 }
 impl From<u16> for PreambleLength {
@@ -263,6 +273,11 @@ impl Frequency {
     /// Create a new frequency from the given raw frequency in Hz
     pub const fn hz(hz: u32) -> Self {
         Self(hz)
+    }
+
+    /// The frequency in Hertz as `u32`
+    pub const fn as_u32(self) -> u32 {
+        self.0
     }
 }
 impl From<u32> for Frequency {
