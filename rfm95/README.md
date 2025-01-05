@@ -10,7 +10,7 @@
 
 # `embedded-lora-rfm95`
 A `no-std`-compatible, opinionated driver for the RFM95 LoRa modem. It only supports the LoRa mode, and has only been
-tested with the 868 MHz variant for now.
+tested with the EU 868 MHz ISM bands for now.
 
 ## Features
 The crate supports the following optional `cargo` features:

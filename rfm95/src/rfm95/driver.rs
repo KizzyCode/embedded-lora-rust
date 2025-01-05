@@ -1,15 +1,17 @@
 //! RFM95 driver for LoRa operations
 
-use crate::{
-    lora::{airtime, config::Config, types::*},
-    rfm95::{connection::Rfm95Connection, registers::*, RFM95_FIFO_SIZE},
-};
-use core::{
-    cmp,
-    fmt::{Debug, Formatter},
-    time::Duration,
-};
-use embedded_hal::{delay::DelayNs, digital::OutputPin, spi::SpiBus};
+use crate::lora::airtime;
+use crate::lora::config::Config;
+use crate::lora::types::*;
+use crate::rfm95::connection::Rfm95Connection;
+use crate::rfm95::registers::*;
+use crate::rfm95::RFM95_FIFO_SIZE;
+use core::cmp;
+use core::fmt::{Debug, Formatter};
+use core::time::Duration;
+use embedded_hal::delay::DelayNs;
+use embedded_hal::digital::OutputPin;
+use embedded_hal::spi::SpiBus;
 
 /// Raw SPI command interface for RFM95
 pub struct Rfm95Driver<Bus, Select>
@@ -324,11 +326,36 @@ where
         Ok(Some(written as usize))
     }
 
+    /// Computes the maximum RX timeout for the current configured spreading factor and bandwidth
+    ///
+    /// # Maximum Timeout
+    /// The maximum timeout is dependent on the symbol length, which in turn depends on the configured spreading factor
+    /// and bandwidth. This means that computed timeout is only valid for a given spreading-factor+bandwidth combination
+    /// and must be recomputed if those parameters change.
+    ///
+    /// # Implementation details
+    /// The RFM95 timeout counter works by counting symbols, and supports a maximum timeout of 1023 symbols. To compute
+    /// the maximum timeout, we take the configured [`Self::spreading_factor`] and [`Self::bandwidth`], and get the
+    /// duration of a single symbol via [`crate::lora::airtime::symbol_airtime`]. The maximum timeout is the duration of
+    /// a single symbol, multiplied with `1023`.
+    pub fn rx_timeout_max(&mut self) -> Result<Duration, &'static str> {
+        // Get current config
+        let spreading_factor = self.spreading_factor()?;
+        let bandwidth = self.bandwidth()?;
+
+        // Compute timeout
+        let airtime_symbol = airtime::symbol_airtime(spreading_factor, bandwidth);
+        Ok(airtime_symbol.saturating_mul(1023))
+    }
     /// Schedules a single RX operation and returns immediately
     ///
     /// # Non-Blocking
     /// This functions schedules the RX operation and returns immediately. To check if the TX operation is done and to
     /// get the received data, use [`Self::complete_tx`].
+    ///
+    /// # Maximum Timeout
+    /// The RFM95 timeout counter works by counting symbols, and is thus dependent on the configured spreading factor
+    /// and bandwidth. See also [`Self::rx_timeout_max`].
     pub fn start_rx(&mut self, timeout: Duration) -> Result<(), &'static str> {
         // Get the current symbol airtime in microseconds
         let spreading_factor = self.spreading_factor()?;

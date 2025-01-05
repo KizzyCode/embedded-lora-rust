@@ -1,10 +1,9 @@
 //! LoRa-related operations
 
-use crate::lora::{
-    config::Config,
-    types::{Bandwidth, SpreadingFactor},
-};
-use core::{cmp, time::Duration};
+use crate::lora::config::Config;
+use crate::lora::types::{Bandwidth, SpreadingFactor};
+use core::cmp;
+use core::time::Duration;
 
 /// Utility function to compute a ceiling integer division
 ///

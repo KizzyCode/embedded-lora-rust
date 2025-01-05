@@ -2,7 +2,8 @@
 
 use crate::rfm95::registers::Register;
 use core::fmt::{Debug, Formatter};
-use embedded_hal::{digital::OutputPin, spi::SpiBus};
+use embedded_hal::digital::OutputPin;
+use embedded_hal::spi::SpiBus;
 
 /// A RFM95 SPI connection
 pub struct Rfm95Connection<Bus, Select>

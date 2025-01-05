@@ -203,7 +203,7 @@ pub struct SyncWord(u8);
 impl SyncWord {
     /// Public sync word
     pub const PUBLIC: Self = Self(0x34);
-    /// Private syncw ord
+    /// Private sync word
     pub const PRIVATE: Self = Self(0x12);
 
     /// Create a new sync word from the given raw sync word
