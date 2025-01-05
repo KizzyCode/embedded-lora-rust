@@ -7,9 +7,9 @@ mod registers;
 use crate::lora::types::Frequency;
 use embedded_hal::spi::{Mode, MODE_0};
 
-/// SPI frequency to use
+/// Recommended SPI frequency
 pub const RFM95_SPI_FREQUENCY: Frequency = Frequency::hz(10_000_000);
-/// SPI baudrate to use
+/// Recommended SPI baudrate
 pub const RFM95_SPI_BAUDRATE: Frequency = Frequency::hz(1_000_000);
 /// SPI frame mode
 pub const RFM95_SPI_MODE: Mode = MODE_0;
