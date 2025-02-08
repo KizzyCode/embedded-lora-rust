@@ -136,5 +136,5 @@ pub fn airtime(payload_len: usize, config: Config) -> Duration {
 
     // The airtime of the message is the preamble plus the payload
     #[allow(clippy::arithmetic_side_effects, reason = "This will never overflow")]
-    Duration::from_micros(preamble_airtime * payload_airtime)
+    Duration::from_micros(preamble_airtime + payload_airtime)
 }
