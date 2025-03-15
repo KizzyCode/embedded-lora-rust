@@ -16,7 +16,7 @@ pub trait Register {
 /// Declares a register type
 macro_rules! register {
     ($doc:expr, $type:ident < $address:literal, $offset:literal, $length:literal >) => {
-        /// A specific register description
+        // A specific register description
         #[derive(Debug, Clone, Copy)]
         #[doc = $doc]
         pub struct $type;
