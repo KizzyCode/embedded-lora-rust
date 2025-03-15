@@ -51,6 +51,10 @@ where
     const REG_OPMODE_MODE_TXSINGLE: u8 = 0b011;
     /// The pre-assembled register value for the operation mode register to start a single LoRa RX reception
     const REG_OPMODE_MODE_RXSINGLE: u8 = 0b110;
+    /// When operating in the high frequency range the RSSI register values are offset by this much.
+    const HF_RSSI_OFFSET: i16 = -157;
+    /// When operating in the low frequency range the RSSI register values are offset by this much.
+    const LF_RSSI_OFFSET: i16 = -164;
 
     /// Creates a new raw SPI command interface for RFM95
     ///
@@ -439,6 +443,37 @@ where
 
         // Return the amount of bytes copied
         Ok(Some(len as usize))
+    }
+
+    /// Get the signal strength of the last recieved packet.
+    ///
+    /// Unlike RSSI, this accounts for LoRa's ability to recieve packets below the noise floor.
+    pub fn get_packet_strength(&mut self) -> Result<i16, IoError> {
+        let offset = if self.frequency()? < Self::HIGH_FREQUENCY_THRESHOLD {
+            Self::LF_RSSI_OFFSET
+        } else {
+            Self::HF_RSSI_OFFSET
+        };
+        let snr = self.get_packet_snr()?;
+        #[allow(clippy::arithmetic_side_effects, reason = "Can never overflow")]
+        Ok(self.spi.read(RegPktRssiValue)? as i16 + snr.min(0) as i16 + offset)
+    }
+
+    /// Get the Relative Signal Strength Indicator (RSSI) of the last recieved packet.
+    pub fn get_packet_rssi(&mut self) -> Result<i16, IoError> {
+        let offset = if self.frequency()? < Self::HIGH_FREQUENCY_THRESHOLD {
+            Self::LF_RSSI_OFFSET
+        } else {
+            Self::HF_RSSI_OFFSET
+        };
+        #[allow(clippy::arithmetic_side_effects, reason = "Can never overflow")]
+        Ok(self.spi.read(RegPktRssiValue)? as i16 + offset)
+    }
+
+    /// Get the Signal to Noise Ratio (SNR) of the last recieved packet.
+    pub fn get_packet_snr(&mut self) -> Result<i8, IoError> {
+        // The value is stored in two's complement form in the register, so the cast to i8 is fine
+        Ok((self.spi.read(RegPktSnrValue)? as i8) / 4)
     }
 
     /// Dumps all used registers; usefule for debugging purposes
