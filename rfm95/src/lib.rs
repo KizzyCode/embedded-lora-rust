@@ -15,5 +15,6 @@
 #![warn(clippy::allow_attributes_without_reason)]
 #![warn(clippy::cognitive_complexity)]
 
+pub mod error;
 pub mod lora;
 pub mod rfm95;

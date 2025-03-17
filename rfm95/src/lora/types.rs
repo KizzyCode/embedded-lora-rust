@@ -1,5 +1,8 @@
 //! Small wrappers for type safety
 
+use crate::err;
+use crate::error::Error;
+
 /// A LoRa spreading factor
 ///
 /// # Implementation Note
@@ -26,7 +29,7 @@ pub enum SpreadingFactor {
     S12 = 12,
 }
 impl TryFrom<u8> for SpreadingFactor {
-    type Error = &'static str;
+    type Error = Error;
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
@@ -36,7 +39,7 @@ impl TryFrom<u8> for SpreadingFactor {
             sf if sf == Self::S10 as u8 => Ok(Self::S10),
             sf if sf == Self::S11 as u8 => Ok(Self::S11),
             sf if sf == Self::S12 as u8 => Ok(Self::S12),
-            _ => Err("Invalid or unsupported spreading factor"),
+            _ => Err(err!(einval: "Invalid or unsupported spreading factor")),
         }
     }
 }
@@ -71,7 +74,7 @@ pub enum Bandwidth {
     B7_8 = 0b0000,
 }
 impl TryFrom<u8> for Bandwidth {
-    type Error = &'static str;
+    type Error = Error;
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
@@ -85,7 +88,7 @@ impl TryFrom<u8> for Bandwidth {
             bw if bw == Self::B15_6 as u8 => Ok(Self::B15_6),
             bw if bw == Self::B10_4 as u8 => Ok(Self::B10_4),
             bw if bw == Self::B7_8 as u8 => Ok(Self::B7_8),
-            _ => Err("Invalid or unsupported bandwidth"),
+            _ => Err(err!(einval: "Invalid or unsupported bandwidth")),
         }
     }
 }
@@ -108,7 +111,7 @@ pub enum CodingRate {
     C4_8 = 0b100,
 }
 impl TryFrom<u8> for CodingRate {
-    type Error = &'static str;
+    type Error = Error;
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
@@ -116,7 +119,7 @@ impl TryFrom<u8> for CodingRate {
             cr if cr == Self::C4_6 as u8 => Ok(Self::C4_6),
             cr if cr == Self::C4_7 as u8 => Ok(Self::C4_7),
             cr if cr == Self::C4_8 as u8 => Ok(Self::C4_8),
-            _ => Err("Invalid coding rate"),
+            _ => Err(err!(einval: "Invalid coding rate")),
         }
     }
 }
@@ -135,13 +138,13 @@ pub enum Polarity {
     Inverted = 1,
 }
 impl TryFrom<u8> for Polarity {
-    type Error = &'static str;
+    type Error = Error;
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
             polarity if polarity == Self::Normal as u8 => Ok(Self::Normal),
             polarity if polarity == Self::Inverted as u8 => Ok(Self::Inverted),
-            _ => Err("Invalid IQ polarity value"),
+            _ => Err(err!(einval: "Invalid IQ polarity value")),
         }
     }
 }
@@ -160,13 +163,13 @@ pub enum HeaderMode {
     Implicit = 1,
 }
 impl TryFrom<u8> for HeaderMode {
-    type Error = &'static str;
+    type Error = Error;
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
             mode if mode == Self::Explicit as u8 => Ok(Self::Explicit),
             mode if mode == Self::Implicit as u8 => Ok(Self::Implicit),
-            _ => Err("Invalid header mode"),
+            _ => Err(err!(einval: "Invalid header mode")),
         }
     }
 }
@@ -185,13 +188,13 @@ pub enum CrcMode {
     Enabled = 1,
 }
 impl TryFrom<u8> for CrcMode {
-    type Error = &'static str;
+    type Error = Error;
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
             mode if mode == Self::Disabled as u8 => Ok(Self::Disabled),
             mode if mode == Self::Enabled as u8 => Ok(Self::Enabled),
-            _ => Err("Invalid CRC mode"),
+            _ => Err(err!(einval: "Invalid CRC mode")),
         }
     }
 }

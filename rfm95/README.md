@@ -18,6 +18,11 @@ The `fugit`-feature implements simple `From`/`Into`-conversions between the buil
 [`fugit`'s](https://crates.io/crates/fugit) [`HertzU32` type](https://docs.rs/fugit/latest/fugit/type.HertzU32.html).
 This is a comfort-feature only, and does not enable additional functionality.
 
+### `backtrace` (disabled by default)
+The `backtrace`-feature can be used to get more verbose errors. If this feature is enabled, errors will contain a human
+readable description as well as file and line information about where the error occurred. This is useful for debugging
+or better logging, but can be disabled if library size matters.
+
 ### `debug` (disabled by default)
 The `debug` feature enables some debug functionality, namely an SPI debug callback which can be used to log all SPI
 transactions with the RFM95 modem, and provides some helper functions to dump the register state and FIFO contents. The
