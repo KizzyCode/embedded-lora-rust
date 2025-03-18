@@ -1,7 +1,7 @@
 //! RFM95 driver for LoRa operations
 
 use crate::err;
-use crate::error::Error;
+use crate::error::{InvalidArgumentError, InvalidMessageError, IoError, RxCompleteError, RxTxStartError, TimeoutError};
 use crate::lora::airtime;
 use crate::lora::config::Config;
 use crate::lora::types::*;
@@ -59,17 +59,17 @@ where
     /// # Important
     /// The RFM95 modem is initialized to LoRa-mode and put to standby. All other configurations are left untouched, so
     /// you probably want to configure the modem initially (also see [`Self::set_config`]).
-    pub fn new<R, T>(bus: Bus, select: Select, mut reset: R, mut timer: T) -> Result<Self, Error>
+    pub fn new<R, T>(bus: Bus, select: Select, mut reset: R, mut timer: T) -> Result<Self, IoError>
     where
         R: OutputPin,
         T: DelayNs,
     {
         // Pull reset to low and wait until the reset is triggered
-        reset.set_low().map_err(|_| err!(eio: "Failed to pull reset line to low"))?;
+        reset.set_low().map_err(|_| err!(IoError, "Failed to pull reset line to low"))?;
         timer.delay_ms(1);
 
         // Pull reset to high again and give the chip some time to boot
-        reset.set_high().map_err(|_| err!(eio: "Failed to pull reset line to high"))?;
+        reset.set_high().map_err(|_| err!(IoError, "Failed to pull reset line to high"))?;
         timer.delay_ms(10);
 
         // Validate chip revision to assure the protocol matches
@@ -80,7 +80,7 @@ where
             let silicon_revision = wire.read(RegVersion)?;
             let true = Self::SUPPORTED_SILICON_REVISIONS.contains(&silicon_revision) else {
                 // Raise an error here since other revisions may be incompatible
-                return Err(err!(einval: "Unsupported silicon revision"));
+                return Err(err!(IoError, "Unsupported silicon revision"));
             };
         }
 
@@ -100,7 +100,7 @@ where
     }
 
     /// Applies the given config (useful for initialization)
-    pub fn set_config(&mut self, config: &Config) -> Result<(), Error> {
+    pub fn set_config(&mut self, config: &Config) -> Result<(), IoError> {
         self.set_spreading_factor(config.spreading_factor())?;
         self.set_bandwidth(config.bandwidth())?;
         self.set_coding_rate(config.coding_rate())?;
@@ -114,12 +114,13 @@ where
     }
 
     /// The current spreading factor
-    pub fn spreading_factor(&mut self) -> Result<SpreadingFactor, Error> {
-        let spreading_factor = self.spi.read(RegModemConfig2SpreadingFactor)?;
-        SpreadingFactor::try_from(spreading_factor)
+    pub fn spreading_factor(&mut self) -> Result<SpreadingFactor, IoError> {
+        let spreading_factor_raw = self.spi.read(RegModemConfig2SpreadingFactor)?;
+        let spreading_factor = SpreadingFactor::parse(spreading_factor_raw)?;
+        Ok(spreading_factor)
     }
     /// Set the spreading factor
-    pub fn set_spreading_factor<T>(&mut self, spreading_factor: T) -> Result<(), Error>
+    pub fn set_spreading_factor<T>(&mut self, spreading_factor: T) -> Result<(), IoError>
     where
         T: Into<SpreadingFactor>,
     {
@@ -135,12 +136,12 @@ where
     }
 
     /// The current bandwidth
-    pub fn bandwidth(&mut self) -> Result<Bandwidth, Error> {
+    pub fn bandwidth(&mut self) -> Result<Bandwidth, IoError> {
         let bandwidth = self.spi.read(RegModemConfig1Bw)?;
-        Bandwidth::try_from(bandwidth)
+        Bandwidth::parse(bandwidth)
     }
     /// Sets the bandwidth
-    pub fn set_bandwidth<T>(&mut self, bandwidth: T) -> Result<(), Error>
+    pub fn set_bandwidth<T>(&mut self, bandwidth: T) -> Result<(), IoError>
     where
         T: Into<Bandwidth>,
     {
@@ -156,12 +157,12 @@ where
     }
 
     /// The current coding rate
-    pub fn coding_rate(&mut self) -> Result<CodingRate, Error> {
+    pub fn coding_rate(&mut self) -> Result<CodingRate, IoError> {
         let coding_rate = self.spi.read(RegModemConfig1CodingRate)?;
-        CodingRate::try_from(coding_rate)
+        CodingRate::parse(coding_rate)
     }
     /// Sets the coding rate
-    pub fn set_coding_rate<T>(&mut self, coding_rate: T) -> Result<(), Error>
+    pub fn set_coding_rate<T>(&mut self, coding_rate: T) -> Result<(), IoError>
     where
         T: Into<CodingRate>,
     {
@@ -170,12 +171,12 @@ where
     }
 
     /// The current IQ polarity
-    pub fn polarity(&mut self) -> Result<Polarity, Error> {
+    pub fn polarity(&mut self) -> Result<Polarity, IoError> {
         let polarity = self.spi.read(RegInvertIQ)?;
-        Polarity::try_from(polarity)
+        Polarity::parse(polarity)
     }
     /// Sets the IQ polarity
-    pub fn set_polarity<T>(&mut self, polarity: T) -> Result<(), Error>
+    pub fn set_polarity<T>(&mut self, polarity: T) -> Result<(), IoError>
     where
         T: Into<Polarity>,
     {
@@ -184,12 +185,12 @@ where
     }
 
     /// The current header mode
-    pub fn header_mode(&mut self) -> Result<HeaderMode, Error> {
+    pub fn header_mode(&mut self) -> Result<HeaderMode, IoError> {
         let header_mode = self.spi.read(RegModemConfig1ImplicitHeaderModeOn)?;
-        HeaderMode::try_from(header_mode)
+        HeaderMode::parse(header_mode)
     }
     /// Sets the header mode
-    pub fn set_header_mode<T>(&mut self, header_mode: T) -> Result<(), Error>
+    pub fn set_header_mode<T>(&mut self, header_mode: T) -> Result<(), IoError>
     where
         T: Into<HeaderMode>,
     {
@@ -198,12 +199,12 @@ where
     }
 
     /// The current CRC mode
-    pub fn crc_mode(&mut self) -> Result<CrcMode, Error> {
+    pub fn crc_mode(&mut self) -> Result<CrcMode, IoError> {
         let crc_mode = self.spi.read(RegModemConfig2RxPayloadCrcOn)?;
-        CrcMode::try_from(crc_mode)
+        CrcMode::parse(crc_mode)
     }
     /// Sets the CRC mode
-    pub fn set_crc_mode<T>(&mut self, crc: T) -> Result<(), Error>
+    pub fn set_crc_mode<T>(&mut self, crc: T) -> Result<(), IoError>
     where
         T: Into<CrcMode>,
     {
@@ -212,12 +213,12 @@ where
     }
 
     /// The current sync word
-    pub fn sync_word(&mut self) -> Result<SyncWord, Error> {
+    pub fn sync_word(&mut self) -> Result<SyncWord, IoError> {
         let sync_word = self.spi.read(RegSyncWord)?;
         Ok(SyncWord::new(sync_word))
     }
     /// Sets the sync word
-    pub fn set_sync_word<T>(&mut self, sync_word: T) -> Result<(), Error>
+    pub fn set_sync_word<T>(&mut self, sync_word: T) -> Result<(), IoError>
     where
         T: Into<SyncWord>,
     {
@@ -226,7 +227,7 @@ where
     }
 
     /// The current preamble length
-    pub fn preamble_len(&mut self) -> Result<PreambleLength, Error> {
+    pub fn preamble_len(&mut self) -> Result<PreambleLength, IoError> {
         // Read registers
         let preamble_len_msb = self.spi.read(RegPreambleMsb)?;
         let preamble_len_lsb = self.spi.read(RegPreambleLsb)?;
@@ -236,7 +237,7 @@ where
         Ok(PreambleLength::new(preamble_len))
     }
     /// Sets the preamble length
-    pub fn set_preamble_len<T>(&mut self, len: T) -> Result<(), Error>
+    pub fn set_preamble_len<T>(&mut self, len: T) -> Result<(), IoError>
     where
         T: Into<PreambleLength>,
     {
@@ -246,7 +247,7 @@ where
     }
 
     /// The current frequency
-    pub fn frequency(&mut self) -> Result<Frequency, Error> {
+    pub fn frequency(&mut self) -> Result<Frequency, IoError> {
         // Read frequency from registers
         let frequency_msb = self.spi.read(RegFrMsb)?;
         let frequency_mid = self.spi.read(RegFrMid)?;
@@ -260,7 +261,7 @@ where
         Ok(Frequency::hz(frequency))
     }
     /// Sets the frequency
-    pub fn set_frequency<T>(&mut self, frequency: T) -> Result<(), Error>
+    pub fn set_frequency<T>(&mut self, frequency: T) -> Result<(), IoError>
     where
         T: Into<Frequency>,
     {
@@ -288,11 +289,11 @@ where
     /// # Non-Blocking
     /// This functions schedules the TX operation and returns immediately. To check if the TX operation is done, use
     /// [`Self::complete_tx`].
-    pub fn start_tx(&mut self, data: &[u8]) -> Result<(), Error> {
+    pub fn start_tx(&mut self, data: &[u8]) -> Result<(), RxTxStartError> {
         // Validate input length
         let 1..=RFM95_FIFO_SIZE = data.len() else {
             // The message is empty or too long
-            return Err(err!(einval: "Invalid TX data length"));
+            return Err(err!(InvalidArgumentError, "Invalid TX data length"))?;
         };
 
         // Copy packet into FIFO...
@@ -316,7 +317,7 @@ where
     ///
     /// # Non-Blocking
     /// This function is non-blocking. If the TX operation is not done yet, it returns `Ok(None)`.
-    pub fn complete_tx(&mut self) -> Result<Option<usize>, Error> {
+    pub fn complete_tx(&mut self) -> Result<Option<usize>, IoError> {
         // Check for TX done
         let 0b1 = self.spi.read(RegIrqFlagsTxDone)? else {
             // The TX operation has not been completed yet
@@ -340,7 +341,7 @@ where
     /// the maximum timeout, we take the configured [`Self::spreading_factor`] and [`Self::bandwidth`], and get the
     /// duration of a single symbol via [`crate::lora::airtime::symbol_airtime`]. The maximum timeout is the duration of
     /// a single symbol, multiplied with `1023`.
-    pub fn rx_timeout_max(&mut self) -> Result<Duration, Error> {
+    pub fn rx_timeout_max(&mut self) -> Result<Duration, IoError> {
         // Get current config
         let spreading_factor = self.spreading_factor()?;
         let bandwidth = self.bandwidth()?;
@@ -358,7 +359,7 @@ where
     /// # Maximum Timeout
     /// The RFM95 timeout counter works by counting symbols, and is thus dependent on the configured spreading factor
     /// and bandwidth. See also [`Self::rx_timeout_max`].
-    pub fn start_rx(&mut self, timeout: Duration) -> Result<(), Error> {
+    pub fn start_rx(&mut self, timeout: Duration) -> Result<(), RxTxStartError> {
         // Get the current symbol airtime in microseconds
         let spreading_factor = self.spreading_factor()?;
         let bandwidth = self.bandwidth()?;
@@ -366,10 +367,11 @@ where
         let symbol_airtime_micros = symbol_airtime.as_micros() as i32;
 
         // Compute the raw timeout
-        let timeout_micros = i32::try_from(timeout.as_micros()).map_err(|_| err!(einval: "Timeout is too long"))?;
+        let timeout_micros =
+            i32::try_from(timeout.as_micros()).map_err(|_| err!(InvalidArgumentError, "Timeout is too long"))?;
         let timeout_symbols @ 0..1024 = airtime::ceildiv(timeout_micros, symbol_airtime_micros) as u32 else {
             // This timeout is too large to be configured
-            return Err(err!(einval: "Effective timeout is too large"));
+            return Err(err!(InvalidArgumentError, "Effective timeout is too large"))?;
         };
 
         // Configure the timeout and reset the address pointer
@@ -400,15 +402,15 @@ where
     /// # Timeout or CRC errors
     /// If the receive operation times out or the received message is corrupt,
     #[allow(clippy::missing_panics_doc, reason = "The panic should never occur during regular operation")]
-    pub fn complete_rx(&mut self, buf: &mut [u8]) -> Result<Option<usize>, Error> {
+    pub fn complete_rx(&mut self, buf: &mut [u8]) -> Result<Option<usize>, RxCompleteError> {
         // Check for errors
         let 0b0 = self.spi.read(RegIrqFlagsRxTimeout)? else {
             // The RX operation has timeouted
-            return Err(err!(etimedout: "RX timeout"));
+            return Err(err!(TimeoutError, "RX timeout"))?;
         };
         let 0b0 = self.spi.read(RegIrqFlagsPayloadCrcError)? else {
             // The RX operation has failed
-            return Err(err!(ebadmsg: "RX CRC error"));
+            return Err(err!(InvalidMessageError, "RX CRC error"))?;
         };
 
         // Check for RX done
@@ -439,7 +441,7 @@ where
 
     /// Dumps all used registers; usefule for debugging purposes
     #[cfg(feature = "debug")]
-    pub fn dump_registers(&mut self) -> Result<[u8; REGISTER_MAX as usize + 1], Error> {
+    pub fn dump_registers(&mut self) -> Result<[u8; REGISTER_MAX as usize + 1], IoError> {
         // A dynamic register for dumping purposes
         struct DynamicRegister(u8);
         impl Register for DynamicRegister {
@@ -459,7 +461,7 @@ where
     }
     /// Dumps the entire FIFO contents
     #[cfg(feature = "debug")]
-    pub fn dump_fifo(&mut self) -> Result<[u8; RFM95_FIFO_SIZE], Error> {
+    pub fn dump_fifo(&mut self) -> Result<[u8; RFM95_FIFO_SIZE], IoError> {
         // Save FIFO position
         let fifo_position = self.spi.read(RegFifoAddrPtr)?;
 
