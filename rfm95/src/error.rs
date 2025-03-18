@@ -74,14 +74,14 @@ pub struct InvalidArgumentError {
 /// An RX- or TX-start error
 #[derive(Debug, Clone, Copy)]
 pub enum RxTxStartError {
-    /// A low-level SPI or reset-related I/O error
-    WireIoError(IoError),
+    /// An I/O error
+    IoError(IoError),
     /// An invalid-argument error
     InvalidArgumentError(InvalidArgumentError),
 }
 impl From<IoError> for RxTxStartError {
     fn from(error: IoError) -> Self {
-        Self::WireIoError(error)
+        Self::IoError(error)
     }
 }
 impl From<InvalidArgumentError> for RxTxStartError {
@@ -93,8 +93,8 @@ impl From<InvalidArgumentError> for RxTxStartError {
 /// An RX-completion specific error
 #[derive(Debug, Clone, Copy)]
 pub enum RxCompleteError {
-    /// A low-level SPI or reset-related I/O error
-    WireIoError(IoError),
+    /// An I/O error
+    IoError(IoError),
     /// A timeout error
     TimeoutError(TimeoutError),
     /// A CRC-validation or format error
@@ -102,7 +102,7 @@ pub enum RxCompleteError {
 }
 impl From<IoError> for RxCompleteError {
     fn from(error: IoError) -> Self {
-        Self::WireIoError(error)
+        Self::IoError(error)
     }
 }
 impl From<TimeoutError> for RxCompleteError {
