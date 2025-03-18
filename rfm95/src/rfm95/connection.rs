@@ -1,5 +1,7 @@
 //! RFM95 SPI connection
 
+use crate::err;
+use crate::error::IoError;
 use crate::rfm95::registers::Register;
 use core::fmt::{Debug, Formatter};
 use embedded_hal::digital::OutputPin;
@@ -32,7 +34,7 @@ where
     }
 
     /// Reads a RFM95 register via SPI
-    pub fn read<T>(&mut self, register: T) -> Result<u8, &'static str>
+    pub fn read<T>(&mut self, register: T) -> Result<u8, IoError>
     where
         T: Register,
     {
@@ -41,7 +43,7 @@ where
         Ok((register_value & register.mask()) >> register.offset())
     }
     /// Updates a RFM95 register via SPI
-    pub fn write<T>(&mut self, register: T, value: u8) -> Result<(), &'static str>
+    pub fn write<T>(&mut self, register: T, value: u8) -> Result<(), IoError>
     where
         T: Register,
     {
@@ -61,15 +63,15 @@ where
     }
 
     /// Performs RFM95-specific SPI register access
-    fn register(&mut self, operation: u8, address: u8, payload: u8) -> Result<u8, &'static str> {
+    fn register(&mut self, operation: u8, address: u8, payload: u8) -> Result<u8, IoError> {
         // Build command
         let address = address & 0b0111_1111;
         let mut command = [operation | address, payload];
 
         // Do transaction
-        self.select.set_low().map_err(|_| "Failed to pull chip-select line to low")?;
-        self.bus.transfer_in_place(&mut command).map_err(|_| "Failed to do SPI transaction")?;
-        self.select.set_high().map_err(|_| "Failed to pull chip-select line to high")?;
+        self.select.set_low().map_err(|_| err!(IoError, "Failed to pull chip-select line to low"))?;
+        self.bus.transfer_in_place(&mut command).map_err(|_| err!(IoError, "Failed to do SPI transaction"))?;
+        self.select.set_high().map_err(|_| err!(IoError, "Failed to pull chip-select line to high"))?;
 
         // SPI debug callback
         #[cfg(feature = "debug")]

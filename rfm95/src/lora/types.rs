@@ -1,5 +1,8 @@
 //! Small wrappers for type safety
 
+use crate::err;
+use crate::error::IoError;
+
 /// A LoRa spreading factor
 ///
 /// # Implementation Note
@@ -25,10 +28,9 @@ pub enum SpreadingFactor {
     /// Spreading factor 12 aka 4096 chirps per symbol
     S12 = 12,
 }
-impl TryFrom<u8> for SpreadingFactor {
-    type Error = &'static str;
-
-    fn try_from(value: u8) -> Result<Self, Self::Error> {
+impl SpreadingFactor {
+    /// Parses `self` from a register value
+    pub(crate) fn parse(value: u8) -> Result<Self, IoError> {
         match value {
             sf if sf == Self::S7 as u8 => Ok(Self::S7),
             sf if sf == Self::S8 as u8 => Ok(Self::S8),
@@ -36,7 +38,7 @@ impl TryFrom<u8> for SpreadingFactor {
             sf if sf == Self::S10 as u8 => Ok(Self::S10),
             sf if sf == Self::S11 as u8 => Ok(Self::S11),
             sf if sf == Self::S12 as u8 => Ok(Self::S12),
-            _ => Err("Invalid or unsupported spreading factor"),
+            _ => Err(err!(IoError, "Invalid or unsupported spreading factor")),
         }
     }
 }
@@ -70,10 +72,9 @@ pub enum Bandwidth {
     /// 7.8 kHz bandwidth
     B7_8 = 0b0000,
 }
-impl TryFrom<u8> for Bandwidth {
-    type Error = &'static str;
-
-    fn try_from(value: u8) -> Result<Self, Self::Error> {
+impl Bandwidth {
+    /// Parses `self` from a register value
+    pub(crate) fn parse(value: u8) -> Result<Self, IoError> {
         match value {
             bw if bw == Self::B500 as u8 => Ok(Self::B500),
             bw if bw == Self::B250 as u8 => Ok(Self::B250),
@@ -85,7 +86,7 @@ impl TryFrom<u8> for Bandwidth {
             bw if bw == Self::B15_6 as u8 => Ok(Self::B15_6),
             bw if bw == Self::B10_4 as u8 => Ok(Self::B10_4),
             bw if bw == Self::B7_8 as u8 => Ok(Self::B7_8),
-            _ => Err("Invalid or unsupported bandwidth"),
+            _ => Err(err!(IoError, "Invalid or unsupported bandwidth")),
         }
     }
 }
@@ -107,16 +108,15 @@ pub enum CodingRate {
     /// Coding rate 4/8 aka 2x overhead
     C4_8 = 0b100,
 }
-impl TryFrom<u8> for CodingRate {
-    type Error = &'static str;
-
-    fn try_from(value: u8) -> Result<Self, Self::Error> {
+impl CodingRate {
+    /// Parses `self` from a register value
+    pub(crate) fn parse(value: u8) -> Result<Self, IoError> {
         match value {
             cr if cr == Self::C4_5 as u8 => Ok(Self::C4_5),
             cr if cr == Self::C4_6 as u8 => Ok(Self::C4_6),
             cr if cr == Self::C4_7 as u8 => Ok(Self::C4_7),
             cr if cr == Self::C4_8 as u8 => Ok(Self::C4_8),
-            _ => Err("Invalid coding rate"),
+            _ => Err(err!(IoError, "Invalid coding rate")),
         }
     }
 }
@@ -134,14 +134,13 @@ pub enum Polarity {
     /// Inverted polarity, usually used for downlinks
     Inverted = 1,
 }
-impl TryFrom<u8> for Polarity {
-    type Error = &'static str;
-
-    fn try_from(value: u8) -> Result<Self, Self::Error> {
+impl Polarity {
+    /// Parses `self` from a register value
+    pub(crate) fn parse(value: u8) -> Result<Self, IoError> {
         match value {
             polarity if polarity == Self::Normal as u8 => Ok(Self::Normal),
             polarity if polarity == Self::Inverted as u8 => Ok(Self::Inverted),
-            _ => Err("Invalid IQ polarity value"),
+            _ => Err(err!(IoError, "Invalid IQ polarity value")),
         }
     }
 }
@@ -159,14 +158,13 @@ pub enum HeaderMode {
     /// Implicit header mode to omit the header if decoding parameters are known
     Implicit = 1,
 }
-impl TryFrom<u8> for HeaderMode {
-    type Error = &'static str;
-
-    fn try_from(value: u8) -> Result<Self, Self::Error> {
+impl HeaderMode {
+    /// Parses `self` from a register value
+    pub(crate) fn parse(value: u8) -> Result<Self, IoError> {
         match value {
             mode if mode == Self::Explicit as u8 => Ok(Self::Explicit),
             mode if mode == Self::Implicit as u8 => Ok(Self::Implicit),
-            _ => Err("Invalid header mode"),
+            _ => Err(err!(IoError, "Invalid header mode")),
         }
     }
 }
@@ -184,14 +182,13 @@ pub enum CrcMode {
     /// CRC enabled
     Enabled = 1,
 }
-impl TryFrom<u8> for CrcMode {
-    type Error = &'static str;
-
-    fn try_from(value: u8) -> Result<Self, Self::Error> {
+impl CrcMode {
+    /// Parses `self` from a register value
+    pub(crate) fn parse(value: u8) -> Result<Self, IoError> {
         match value {
             mode if mode == Self::Disabled as u8 => Ok(Self::Disabled),
             mode if mode == Self::Enabled as u8 => Ok(Self::Enabled),
-            _ => Err("Invalid CRC mode"),
+            _ => Err(err!(IoError, "Invalid CRC mode")),
         }
     }
 }

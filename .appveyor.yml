@@ -7,7 +7,11 @@ configuration:
   - --features=
   - --features=debug
   - --features=fugit
+  - --features=backtrace
   - --features=debug,fugit
+  - --features=fugit,backtrace
+  - --features=backtrace,debug
+  - --features=debug,fugit,backtrace
 
 
 # General environment vars
