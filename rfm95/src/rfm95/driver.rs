@@ -1,7 +1,9 @@
 //! RFM95 driver for LoRa operations
 
 use crate::err;
-use crate::error::{InvalidArgumentError, InvalidMessageError, IoError, RxCompleteError, RxTxStartError, TimeoutError};
+use crate::error::{
+    InvalidArgumentError, InvalidMessageError, IoError, RxCompleteError, RxStartError, TimeoutError, TxStartError,
+};
 use crate::lora::airtime;
 use crate::lora::config::Config;
 use crate::lora::types::*;
@@ -289,7 +291,7 @@ where
     /// # Non-Blocking
     /// This functions schedules the TX operation and returns immediately. To check if the TX operation is done, use
     /// [`Self::complete_tx`].
-    pub fn start_tx(&mut self, data: &[u8]) -> Result<(), RxTxStartError> {
+    pub fn start_tx(&mut self, data: &[u8]) -> Result<(), TxStartError> {
         // Validate input length
         let 1..=RFM95_FIFO_SIZE = data.len() else {
             // The message is empty or too long
@@ -359,7 +361,7 @@ where
     /// # Maximum Timeout
     /// The RFM95 timeout counter works by counting symbols, and is thus dependent on the configured spreading factor
     /// and bandwidth. See also [`Self::rx_timeout_max`].
-    pub fn start_rx(&mut self, timeout: Duration) -> Result<(), RxTxStartError> {
+    pub fn start_rx(&mut self, timeout: Duration) -> Result<(), RxStartError> {
         // Get the current symbol airtime in microseconds
         let spreading_factor = self.spreading_factor()?;
         let bandwidth = self.bandwidth()?;

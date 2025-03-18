@@ -71,20 +71,39 @@ pub struct InvalidArgumentError {
     pub description: &'static str,
 }
 
-/// An RX- or TX-start error
+/// An TX-start error
 #[derive(Debug, Clone, Copy)]
-pub enum RxTxStartError {
+pub enum TxStartError {
     /// An I/O error
     IoError(IoError),
     /// An invalid-argument error
     InvalidArgumentError(InvalidArgumentError),
 }
-impl From<IoError> for RxTxStartError {
+impl From<IoError> for TxStartError {
     fn from(error: IoError) -> Self {
         Self::IoError(error)
     }
 }
-impl From<InvalidArgumentError> for RxTxStartError {
+impl From<InvalidArgumentError> for TxStartError {
+    fn from(error: InvalidArgumentError) -> Self {
+        Self::InvalidArgumentError(error)
+    }
+}
+
+/// An RX-start error
+#[derive(Debug, Clone, Copy)]
+pub enum RxStartError {
+    /// An I/O error
+    IoError(IoError),
+    /// An invalid-argument error
+    InvalidArgumentError(InvalidArgumentError),
+}
+impl From<IoError> for RxStartError {
+    fn from(error: IoError) -> Self {
+        Self::IoError(error)
+    }
+}
+impl From<InvalidArgumentError> for RxStartError {
     fn from(error: InvalidArgumentError) -> Self {
         Self::InvalidArgumentError(error)
     }
