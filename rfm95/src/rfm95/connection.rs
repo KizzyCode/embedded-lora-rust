@@ -4,24 +4,19 @@ use crate::err;
 use crate::error::IoError;
 use crate::rfm95::registers::Register;
 use core::fmt::{Debug, Formatter};
-use embedded_hal::digital::OutputPin;
-use embedded_hal::spi::SpiBus;
+use embedded_hal::spi::SpiDevice;
 
 /// A RFM95 SPI connection
-pub struct Rfm95Connection<Bus, Select>
+pub struct Rfm95Connection<Device>
 where
-    Bus: SpiBus,
-    Select: OutputPin,
+    Device: SpiDevice,
 {
-    /// The SPI bus
-    bus: Bus,
-    /// The chip select line
-    select: Select,
+    /// The SPI device
+    device: Device,
 }
-impl<Bus, Select> Rfm95Connection<Bus, Select>
+impl<Device> Rfm95Connection<Device>
 where
-    Bus: SpiBus,
-    Select: OutputPin,
+    Device: SpiDevice,
 {
     /// A register read operation
     const RO: u8 = 0b0000_0000;
@@ -29,8 +24,8 @@ where
     const RW: u8 = 0b1000_0000;
 
     /// Creates a new RFM95 SPI connection
-    pub const fn init(bus: Bus, select: Select) -> Self {
-        Self { bus, select }
+    pub const fn init(device: Device) -> Self {
+        Self { device }
     }
 
     /// Reads a RFM95 register via SPI
@@ -69,9 +64,9 @@ where
         let mut command = [operation | address, payload];
 
         // Do transaction
-        self.select.set_low().map_err(|_| err!(IoError, "Failed to pull chip-select line to low"))?;
-        self.bus.transfer_in_place(&mut command).map_err(|_| err!(IoError, "Failed to do SPI transaction"))?;
-        self.select.set_high().map_err(|_| err!(IoError, "Failed to pull chip-select line to high"))?;
+        self.device
+            .transfer_in_place(&mut command)
+            .map_err(|_| err!(IoError, "Failed to do GPIO operation or SPI transaction"))?;
 
         // SPI debug callback
         #[cfg(feature = "debug")]
@@ -89,12 +84,11 @@ where
         Ok(command[1])
     }
 }
-impl<Bus, Select> Debug for Rfm95Connection<Bus, Select>
+impl<Device> Debug for Rfm95Connection<Device>
 where
-    Bus: SpiBus,
-    Select: OutputPin,
+    Device: SpiDevice,
 {
     fn fmt(&self, f: &mut Formatter) -> core::fmt::Result {
-        f.debug_struct("Rfm95Connection").field("bus", &"<SpiBus>").field("select", &"<OutputPin>").finish()
+        f.debug_struct("Rfm95Connection").field("device", &"<SpiDevice>").finish()
     }
 }

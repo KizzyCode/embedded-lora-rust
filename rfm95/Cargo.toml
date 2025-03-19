@@ -23,6 +23,7 @@ fugit = ["dep:fugit"]
 
 [dependencies]
 embedded-hal = { version = "1.0.0", default-features = false }
+embedded-hal-bus = { version = "0.3", default-features = false }
 fugit = { version = "0.3.7", default-features = false, optional = true }
 
 
