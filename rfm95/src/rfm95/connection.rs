@@ -64,8 +64,7 @@ where
         let mut command = [operation | address, payload];
 
         // Do transaction
-        self.device
-            .transfer_in_place(&mut command)
+        (self.device.transfer_in_place(&mut command))
             .map_err(|_| err!(IoError, "Failed to do GPIO operation or SPI transaction"))?;
 
         // SPI debug callback
