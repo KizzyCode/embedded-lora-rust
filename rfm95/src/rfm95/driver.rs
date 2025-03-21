@@ -93,7 +93,7 @@ where
         timer.delay_ms(10);
         Ok(())
     }
-    /// Does the setup common to both ::new() and ::new_from_device() fns
+    /// Setups the module for LoRa by setting the minimum amount of required settings
     fn setup_module(spi: &mut Rfm95Connection<Device>) -> Result<(), IoError> {
         // Validate chip revision to assure the protocol matches
         #[cfg(not(feature = "debug"))]
