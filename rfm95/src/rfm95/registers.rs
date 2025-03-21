@@ -16,7 +16,7 @@ pub trait Register {
 /// Declares a register type
 macro_rules! register {
     ($doc:expr, $type:ident < $address:literal, $offset:literal, $length:literal >) => {
-        /// A specific register description
+        // A specific register description
         #[derive(Debug, Clone, Copy)]
         #[doc = $doc]
         pub struct $type;
@@ -129,6 +129,14 @@ register! {
 register! {
     "Number of payload bytes of latest packet received",
     RegRxNbBytes<0x13, 0, 8>
+}
+register! {
+    "SNR of last packet recieved",
+    RegPktSnrValue<0x19, 0, 8>
+}
+register! {
+    "RSSI of last packet recieved",
+    RegPktRssiValue<0x1A, 0, 8>
 }
 register! {
     "Signal bandwidth (see datasheet for more info)",

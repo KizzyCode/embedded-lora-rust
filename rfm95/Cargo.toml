@@ -1,6 +1,6 @@
 [package]
 name = "embedded-lora-rfm95"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 authors = ["KizzyCode Software Labs./Keziah Biermann <development@kizzycode.de>"]
 keywords = ["no-std", "embedded", "hardware-support", "lora", "rfm95"]
@@ -23,6 +23,7 @@ fugit = ["dep:fugit"]
 
 [dependencies]
 embedded-hal = { version = "1.0.0", default-features = false }
+embedded-hal-bus = { version = "0.3", default-features = false }
 fugit = { version = "0.3.7", default-features = false, optional = true }
 
 

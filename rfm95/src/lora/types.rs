@@ -94,7 +94,7 @@ impl Bandwidth {
 /// The coding rate for forward error correction
 ///
 /// # Representation
-/// The spreading factor can be represented as `u8`, where the value is the difference to the overhead divisor (i.e.
+/// The coding rate can be represented as `u8`, where the value is the difference to the overhead divisor (i.e.
 /// `4/5 => 1`, `4/7 => 3`). The representation is compatible to the modem representation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(u8)]
@@ -124,7 +124,7 @@ impl CodingRate {
 /// The IQ polarity
 ///
 /// # Representation
-/// The spreading factor can be represented as `u8`, where `Normal => 0`, `Inverted => 1`. The representation is
+/// The polarity can be represented as `u8`, where `Normal => 0`, `Inverted => 1`. The representation is
 /// compatible to the modem representation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
@@ -148,7 +148,7 @@ impl Polarity {
 /// The LoRa header mode
 ///
 /// # Representation
-/// The spreading factor can be represented as `u8`, where `Explicit => 0`, `Implicit => 1`. The representation is
+/// The header mode can be represented as `u8`, where `Explicit => 0`, `Implicit => 1`. The representation is
 /// compatible to the modem representation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
@@ -172,7 +172,7 @@ impl HeaderMode {
 /// The CRC configuration
 ///
 /// # Representation
-/// The spreading factor can be represented as `u8`, where `Disabled => 0`, `Enabled => 1`. The representation is
+/// The CRC mode can be represented as `u8`, where `Disabled => 0`, `Enabled => 1`. The representation is
 /// compatible to the modem representation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]

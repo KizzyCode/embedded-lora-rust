@@ -15,21 +15,20 @@ use core::fmt::{Debug, Formatter};
 use core::time::Duration;
 use embedded_hal::delay::DelayNs;
 use embedded_hal::digital::OutputPin;
-use embedded_hal::spi::SpiBus;
+use embedded_hal::spi::{SpiBus, SpiDevice};
+use embedded_hal_bus::spi::ExclusiveDevice;
 
 /// Raw SPI command interface for RFM95
-pub struct Rfm95Driver<Bus, Select>
+pub struct Rfm95Driver<Device>
 where
-    Bus: SpiBus,
-    Select: OutputPin,
+    Device: SpiDevice,
 {
     /// The SPI connection to the RFM95 radio
-    spi: Rfm95Connection<Bus, Select>,
+    spi: Rfm95Connection<Device>,
 }
-impl<Bus, Select> Rfm95Driver<Bus, Select>
+impl<Device> Rfm95Driver<Device>
 where
-    Bus: SpiBus,
-    Select: OutputPin,
+    Device: SpiDevice,
 {
     /// Supported silicon revisions for compatibility check
     #[cfg(not(feature = "debug"))]
@@ -51,8 +50,12 @@ where
     const REG_OPMODE_MODE_TXSINGLE: u8 = 0b011;
     /// The pre-assembled register value for the operation mode register to start a single LoRa RX reception
     const REG_OPMODE_MODE_RXSINGLE: u8 = 0b110;
+    /// When operating in the high frequency range the RSSI register values are offset by this much.
+    const HF_RSSI_OFFSET: i16 = -157;
+    /// When operating in the low frequency range the RSSI register values are offset by this much.
+    const LF_RSSI_OFFSET: i16 = -164;
 
-    /// Creates a new raw SPI command interface for RFM95
+    /// Creates a new raw SPI command interface for RFM95 from an [`SpiDevice`]
     ///
     /// # Blocking
     /// This function blocks for at least `11ms` plus additional time for the modem transactions. If you have tight
@@ -61,10 +64,25 @@ where
     /// # Important
     /// The RFM95 modem is initialized to LoRa-mode and put to standby. All other configurations are left untouched, so
     /// you probably want to configure the modem initially (also see [`Self::set_config`]).
-    pub fn new<R, T>(bus: Bus, select: Select, mut reset: R, mut timer: T) -> Result<Self, IoError>
+    pub fn new<Reset, Timer>(device: Device, mut reset: Reset, mut timer: Timer) -> Result<Self, IoError>
     where
-        R: OutputPin,
-        T: DelayNs,
+        Reset: OutputPin,
+        Timer: DelayNs,
+    {
+        // Fully reset module
+        Self::reset_module(&mut reset, &mut timer)?;
+
+        // Connect to and setup module and init `self`
+        let mut spi = Rfm95Connection::init(device);
+        Self::setup_module(&mut spi)?;
+        Ok(Self { spi })
+    }
+
+    /// Resets the module
+    fn reset_module<Reset, Timer>(reset: &mut Reset, timer: &mut Timer) -> Result<(), IoError>
+    where
+        Reset: OutputPin,
+        Timer: DelayNs,
     {
         // Pull reset to low and wait until the reset is triggered
         reset.set_low().map_err(|_| err!(IoError, "Failed to pull reset line to low"))?;
@@ -73,13 +91,15 @@ where
         // Pull reset to high again and give the chip some time to boot
         reset.set_high().map_err(|_| err!(IoError, "Failed to pull reset line to high"))?;
         timer.delay_ms(10);
-
+        Ok(())
+    }
+    /// Setups the module for LoRa by setting the minimum amount of required settings
+    fn setup_module(spi: &mut Rfm95Connection<Device>) -> Result<(), IoError> {
         // Validate chip revision to assure the protocol matches
-        let mut wire = Rfm95Connection::init(bus, select);
         #[cfg(not(feature = "debug"))]
         {
             // Get chip revision
-            let silicon_revision = wire.read(RegVersion)?;
+            let silicon_revision = spi.read(RegVersion)?;
             let true = Self::SUPPORTED_SILICON_REVISIONS.contains(&silicon_revision) else {
                 // Raise an error here since other revisions may be incompatible
                 return Err(err!(IoError, "Unsupported silicon revision"));
@@ -87,18 +107,16 @@ where
         }
 
         // Go to sleep, switch to LoRa and enter standby
-        wire.write(RegOpModeMode, Self::REG_OPMODE_MODE_SLEEP)?;
-        wire.write(RegOpModeLongRangeMode, Self::REG_OPMODE_LONGRANGEMODE_LORA)?;
-        wire.write(RegOpModeMode, Self::REG_OPMODE_MODE_STANDBY)?;
-        wire.write(RegOpModeAccessSharedReg, Self::REG_OPMODE_ACCESSSHAREDREG_LORA)?;
+        spi.write(RegOpModeMode, Self::REG_OPMODE_MODE_SLEEP)?;
+        spi.write(RegOpModeLongRangeMode, Self::REG_OPMODE_LONGRANGEMODE_LORA)?;
+        spi.write(RegOpModeMode, Self::REG_OPMODE_MODE_STANDBY)?;
+        spi.write(RegOpModeAccessSharedReg, Self::REG_OPMODE_ACCESSSHAREDREG_LORA)?;
 
         // Set TX and RX base address to 0 to use the entire available FIFO space, and the power amplifier to max
-        wire.write(RegFifoTxBaseAddr, 0x00)?;
-        wire.write(RegFifoRxBaseAddr, 0x00)?;
-        wire.write(RegPaConfig, 0xFF)?;
-
-        // Init self
-        Ok(Self { spi: wire })
+        spi.write(RegFifoTxBaseAddr, 0x00)?;
+        spi.write(RegFifoRxBaseAddr, 0x00)?;
+        spi.write(RegPaConfig, 0xFF)?;
+        Ok(())
     }
 
     /// Applies the given config (useful for initialization)
@@ -441,6 +459,40 @@ where
         Ok(Some(len as usize))
     }
 
+    /// Get the Relative Signal Strength Indicator (RSSI) of the last received packet.
+    pub fn get_packet_rssi(&mut self) -> Result<i16, IoError> {
+        // Get raw RSSI value and frequency-dependent RSSI offset
+        let rssi_raw = self.spi.read(RegPktRssiValue)?;
+        let rssi_offset = match self.frequency()? < Self::HIGH_FREQUENCY_THRESHOLD {
+            true => Self::LF_RSSI_OFFSET,
+            false => Self::HF_RSSI_OFFSET,
+        };
+
+        // Compute final RSSI value
+        #[allow(clippy::arithmetic_side_effects, reason = "Can never overflow")]
+        Ok(rssi_raw as i16 + rssi_offset)
+    }
+
+    /// Get the signal strength of the last received packet
+    ///
+    /// # Note
+    /// Unlike RSSI, this accounts for LoRa's ability to receive packets below the noise floor.
+    pub fn get_packet_strength(&mut self) -> Result<i16, IoError> {
+        // Get signal-to-noise ratio and RSSI value
+        let snr = self.get_packet_snr()?;
+        let rssi = self.get_packet_rssi()?;
+
+        // Compute packet strength
+        #[allow(clippy::arithmetic_side_effects, reason = "Can never overflow")]
+        Ok(rssi + snr.min(0) as i16)
+    }
+
+    /// Get the Signal to Noise Ratio (SNR) of the last received packet
+    pub fn get_packet_snr(&mut self) -> Result<i8, IoError> {
+        // The value is stored in two's complement form in the register, so the cast to i8 is fine
+        Ok((self.spi.read(RegPktSnrValue)? as i8) / 4)
+    }
+
     /// Dumps all used registers; usefule for debugging purposes
     #[cfg(feature = "debug")]
     pub fn dump_registers(&mut self) -> Result<[u8; REGISTER_MAX as usize + 1], IoError> {
@@ -480,12 +532,41 @@ where
         Ok(dump)
     }
 }
-impl<Bus, Select> Debug for Rfm95Driver<Bus, Select>
+impl<Bus, Select, Delay> Rfm95Driver<ExclusiveDevice<Bus, Select, Delay>>
 where
     Bus: SpiBus,
     Select: OutputPin,
+    Delay: DelayNs,
+{
+    /// Creates a new raw SPI command interface for RFM95 from an SpiBus
+    ///
+    /// # Blocking
+    /// This function blocks for at least `11ms` plus additional time for the modem transactions. If you have tight
+    /// scheduling requirements, you probably want to initialize this driver before entering your main event loop.
+    ///
+    /// # Important
+    /// The RFM95 modem is initialized to LoRa-mode and put to standby. All other configurations are left untouched, so
+    /// you probably want to configure the modem initially (also see [`Self::set_config`]).
+    pub fn new_from_bus<Reset>(bus: Bus, select: Select, mut reset: Reset, mut timer: Delay) -> Result<Self, IoError>
+    where
+        Reset: OutputPin,
+    {
+        // Fully reset module and create exclusive device handle
+        Self::reset_module(&mut reset, &mut timer)?;
+        let device = ExclusiveDevice::new(bus, select, timer)
+            .map_err(|_| err!(IoError, "Failed to pull chip select line to high"))?;
+
+        // Connect to and setup module and init `self`
+        let mut spi = Rfm95Connection::init(device);
+        Self::setup_module(&mut spi)?;
+        Ok(Self { spi })
+    }
+}
+impl<Device> Debug for Rfm95Driver<Device>
+where
+    Device: SpiDevice,
 {
     fn fmt(&self, f: &mut Formatter) -> core::fmt::Result {
-        f.debug_struct("Rfm95Driver").field("spi", &self.spi).finish()
+        f.debug_struct("Rfm95Driver").field("device", &self.spi).finish()
     }
 }
