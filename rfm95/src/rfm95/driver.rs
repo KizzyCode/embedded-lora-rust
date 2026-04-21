@@ -266,6 +266,15 @@ where
         self.spi.write(RegPreambleLsb, preamble_len_lsb)
     }
 
+    /// Sets the expected payload length for implicit header mode.
+    ///
+    /// In implicit header mode, the receiver does not learn the payload length
+    /// from the incoming packet, so it must be pre-configured to match the
+    /// transmitter. The transmitter sets this automatically in `start_tx`.
+    pub fn set_payload_length(&mut self, len: u8) -> Result<(), IoError> {
+        self.spi.write(RegPayloadLength, len)
+    }
+
     /// The current frequency
     pub fn frequency(&mut self) -> Result<Frequency, IoError> {
         // Read frequency from registers
