@@ -1,6 +1,5 @@
 {
-    "rust-analyzer.checkOnSave.allTargets": false,
-    "rust-analyzer.checkOnSave.target": "thumbv6m-none-eabi",
+    "rust-analyzer.checkOnSave": true,
     "[rust]": {
         "editor.formatOnSave": true
     },
